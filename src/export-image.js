@@ -1,0 +1,13 @@
+// Render locally without external fonts, DOM snapshots or remote image requests.
+export async function forumImage(work,characters,onlyOwner,owner){
+ const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+ const font='"Microsoft YaHei", sans-serif',width=1000;
+ function lines(text,max){ctx.font=`22px ${font}`;return String(text||'').split('\n').flatMap(p=>{const rows=[];let row='';for(const ch of p){if(ctx.measureText(row+ch).width>max&&row){rows.push(row);row=''}row+=ch}rows.push(row);return rows})}
+ const title=lines(work.title,900);const fs=work.floors.map((f,i)=>({f,i})).filter(({f})=>!onlyOwner||f.author===owner).map(({f,i})=>({f,i,body:lines(f.status==='deleted'?'该楼层已被删除':f.text,730),quote:f.quote?lines(f.quote,700):[]}));
+ const heights=fs.map(x=>Math.max(195,90+x.body.length*36+(x.quote.length?x.quote.length*30+30:0)));
+ const height=170+title.length*36+heights.reduce((a,b)=>a+b+12,0)+40;if(height>30000)throw Error('图片过长');canvas.width=width;canvas.height=height;ctx.fillStyle='#edf3f9';ctx.fillRect(0,0,width,height);ctx.fillStyle='#3267b4';ctx.fillRect(0,0,width,110);ctx.fillStyle='#fff';ctx.font=`bold 30px ${font}`;ctx.fillText(work.forum,35,46);ctx.font=`20px ${font}`;ctx.fillText(work.tagline||'',35,84);ctx.fillStyle='#17233b';ctx.font=`bold 26px ${font}`;title.forEach((line,i)=>ctx.fillText(line,30,155+i*36));
+ let y=175+title.length*36;
+ fs.forEach(({f,i,body,quote},n)=>{const h=heights[n],person=characters.find(c=>c.id===f.author);ctx.fillStyle='#fff';ctx.fillRect(20,y,960,h);ctx.fillStyle='#f3f7fc';ctx.fillRect(20,y,155,h);ctx.fillStyle=person.color;ctx.beginPath();ctx.arc(97,y+59,30,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font=`26px ${font}`;ctx.textAlign='center';ctx.fillText(person.name.slice(0,1),97,y+68);ctx.fillStyle='#354765';ctx.font=`18px ${font}`;ctx.fillText(person.name,97,y+113,140);ctx.font=`16px ${font}`;ctx.fillStyle='#6789bc';ctx.fillText(`Lv.${person.level}${f.author===owner?' · 楼主':''}`,97,y+143);ctx.textAlign='left';let ty=y+35;if(quote.length){ctx.fillStyle='#f2f6fc';ctx.fillRect(198,ty-20,755,quote.length*30+15);ctx.fillStyle='#7b8ca5';ctx.font=`19px ${font}`;quote.forEach(line=>{ctx.fillText(line,210,ty);ty+=30});ty+=20}ctx.font=`22px ${font}`;ctx.fillStyle=f.status==='deleted'?'#95a1b4':'#364157';body.forEach(line=>{ctx.fillText(line,198,ty);ty+=36});ctx.fillStyle='#8a9ab1';ctx.font=`16px ${font}`;ctx.fillText((f.date||'').replace('T',' ')+'  来自 楼间APP',198,y+h-20);ctx.textAlign='right';ctx.fillText(`${i+1}楼`,952,y+h-20);ctx.textAlign='left';y+=h+12});
+ return await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('生成失败')),'image/png'));
+}
+

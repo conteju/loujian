@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.openai/
+*.tar.gz
+.qa/
+rendered-*.png
+export-check.png
+
